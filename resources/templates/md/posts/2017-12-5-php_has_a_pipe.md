@@ -4,7 +4,7 @@
 :tags ["language"]
 }
 
-<img src="https://github.com/wlisper/wlisper.github.io/blob/master/assets/pic/php-pipe.png?raw=true" alt=""/>
+<img src="https://github.com/wlisper/myblog/blob/master/resources/templates/img/php-pipe.png?raw=true" alt=""/>
 
 PHP 是一根管子，你通常会把它的一端接到汽车的排气管，另一端插进车窗里，然后你坐进车里，开动引擎。
 
