@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Buddha says: Let there be Guns: 拓扑排序</title>
+    <link rel="canonical" href="http://blogawesome.com/blog/posts-output/2017-12-2-topologic_sorting/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="//fonts.googleapis.com/css?family=Alegreya:400italic,700italic,400,700" rel="stylesheet"
+          type="text/css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/default.min.css">
+    <link href="/blog/css/screen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+
+<nav class="navbar navbar-default">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/blog/">Buddha says: Let there be Guns</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li ><a href="/blog/">Home</a></li>
+                <li
+                ><a href="/blog/archives/">Archives</a></li>
+                
+                <li
+                >
+                <a href="/blog/pages-output/about/">About</a>
+                </li>
+                
+                <li><a href="/blog/feed.xml">RSS</a></li>
+            </ul>
+        </div><!--/.nav-collapse -->
+    </div><!--/.container-fluid -->
+</nav>
+
+
+<div class="container">
+
+
+    <div class="row">
+        <div class="col-lg-9">
+            <div id="content">
+                
+<div id="post">
+    <div class="post-header">
+    <div id="post-meta" class="row">
+        <div class="col-lg-6">December 2, 2017</div>
+        
+    </div>
+    <h2>拓扑排序</h2>
+</div>
+<div>
+    
+    <p><div id="table-of-contents"> <h2>Table of Contents</h2> <div id="text-table-of-contents"> <ul> <li><a href="#org010e50b">1. 拓扑排序</a> <ul> <li><a href="#org805f137">1.1. 拓扑排序算法一：</a></li> <li><a href="#org058f8f1">1.2. 拓扑排序算法二</a></li> </ul> </li> </ul> </div> </div></p><p><a id="org010e50b"></a></p><h1 id="拓扑排序">拓扑排序</h1><p>有向无环图(AOV)的拓扑排序，是将图中的顶点排序成一个全序序列，使得对于图中的任意一条有向边(v, u)，满足在拓扑中v出现在u前面。</p><p>拓扑排序通常用于大工程中子工程执行顺序的确定，一个大工程通常可以拆分成多个子工程，有些子工程又必须在子工程之前执行，这是就可以使用拓扑排序，对所有子工程进行排序。</p><p><a id="org805f137"></a></p><h2 id="拓扑排序算法一：">拓扑排序算法一：</h2><ol><li>选择一个入度为0的顶点并输出。</li><li>从图中删除此定点和所有出边。</li><li>重复1，2步。</li></ol><p>循环结束后如果输出的顶点小于图中的顶点，则说明图中有回路。</p><p>common lisp实现如下：</p><pre><code>&#40;defstruct vertex
+  index  ;; vertex index
+  in  ;; in edge
+  out ;; out edge
+  &#41;
+
+&#40;defparameter &#42;graph&#42; &#40;make-array 6 :element-type 'vertex&#41;&#41; ;; vertex array
+&#40;defun add-vertex &#40;index in out&#41;
+  &#40;setf &#40;aref &#42;graph&#42; index&#41;
+        &#40;make-vertex :index index
+                     :in in
+                     :out out&#41;&#41;&#41;
+
+&#40;defun topologic-sort &#40;&amp;optional &#40;graph &#42;graph&#42;&#41;&#41;
+  &#40;dotimes &#40;i &#40;length graph&#41;&#41;
+    &#40;if &#40;null &#40;aref graph i&#41;&#41; nil
+        &#40;if &#40;null &#40;vertex-in &#40;aref graph i&#41;&#41;&#41;
+            &#40;progn &#40;format t &quot;&#126;A&#126;%&quot; &#40;vertex-index &#40;aref graph i&#41;&#41;&#41;
+                   &#40;dolist &#40;j &#40;vertex-out &#40;aref graph i&#41;&#41;&#41;
+                     &#40;setf &#40;vertex-in &#40;aref graph j&#41;&#41;
+                           &#40;delete i &#40;vertex-in &#40;aref graph j&#41;&#41;&#41;&#41;&#41;
+                   &#40;setf &#40;aref graph i&#41; nil&#41;
+                   &#40;topologic-sort graph&#41;&#41;&#41;&#41;&#41;&#41;
+
+;; add five edges
+&#40;add-vertex 0 '&#40;&#41; '&#40;1 2 3&#41;&#41;
+&#40;add-vertex 1 '&#40;0 2&#41; '&#40;&#41;&#41;
+&#40;add-vertex 2 '&#40;0&#41; '&#40;1 4&#41;&#41;
+&#40;add-vertex 3 '&#40;0 5&#41; '&#40;4&#41;&#41;
+&#40;add-vertex 4 '&#40;2 3 5&#41; '&#40;&#41;&#41;
+&#40;add-vertex 5 '&#40;&#41; '&#40;3 4&#41;&#41;
+&#40;topologic-sort&#41;
+;; output
+;; 0
+;; 2
+;; 1
+;; 5
+;; 3
+;; 4</code></pre><p><a id="org058f8f1"></a></p><h2 id="拓扑排序算法二">拓扑排序算法二</h2><p>利用深度优先搜索的思想：</p><ol><li>构建一个栈。</li><li>从任意顶点v开始：</li><li>对v的所有临界顶点递归调用拓扑排序。</li><li>将v压入栈中。</li><li>还有未入栈顶点？跳到第2步。</li><li>弹出栈中所有顶点。</li></ol><p>common lisp实现如下：</p><pre><code>&#40;defstruct vertex
+  index
+  adjacent&#41;
+
+&#40;defparameter &#42;graph&#42; nil&#41;
+&#40;defparameter &#42;stack&#42; nil&#41;
+&#40;defparameter &#42;visited&#42; nil&#41;
+
+&#40;defun add-vertex &#40;index adjacent&#41;
+  &#40;setf &#40;aref &#42;graph&#42; index&#41;
+        &#40;make-vertex :index index
+                     :adjacent adjacent&#41;&#41;&#41;
+
+&#40;defun make-graph &#40;n&#41;
+  &#40;setf &#42;graph&#42; &#40;make-array n :element-type 'vertex&#41;&#41;
+  &#40;setf &#42;visited&#42; &#40;make-array n :initial-element nil&#41;&#41;
+  &#40;setf &#42;stack&#42; nil&#41;&#41;
+
+&#40;defun topologic-sort-util &#40;n &amp;optional &#40;graph &#42;graph&#42;&#41;&#41;
+  &#40;setf &#40;aref &#42;visited&#42; n&#41; t&#41;
+  &#40;dolist &#40;i &#40;vertex-adjacent &#40;aref graph n&#41;&#41;&#41;
+    &#40;unless &#40;aref &#42;visited&#42; i&#41;
+      &#40;topologic-sort-util i graph&#41;&#41;&#41;
+  &#40;push n &#42;stack&#42;&#41;&#41;
+
+&#40;defun topologic-sort &#40;&amp;optional &#40;graph &#42;graph&#42;&#41;&#41;
+  &#40;dotimes &#40;i &#40;length &#42;visited&#42;&#41;&#41;
+    &#40;unless &#40;aref &#42;visited&#42; i&#41;
+      &#40;topologic-sort-util i graph&#41;&#41;&#41;
+  &#40;dolist &#40;e &#42;stack&#42;&#41;
+    &#40;format t &quot;&#126;A&#126;%&quot; e&#41;&#41;&#41;
+
+&#40;progn &#40;make-graph 6&#41;
+       &#40;add-vertex 0 '&#40;1 2 3&#41;&#41;
+       &#40;add-vertex 1 '&#40;&#41;&#41;
+       &#40;add-vertex 2 '&#40;1 4&#41;&#41;
+       &#40;add-vertex 3 '&#40;4&#41;&#41;
+       &#40;add-vertex 4 '&#40;&#41;&#41;
+       &#40;add-vertex 5 '&#40;3 4&#41;&#41;&#41;</code></pre>
+</div>
+
+<div id="post-tags">
+    <b>Tags: </b>
+    
+    <a href="/blog/tags-output/algorithm/">algorithm</a>
+    
+</div>
+
+
+    <div id="prev-next">
+        
+        <a href="/blog/posts-output/2017-12-5-lispy_syntactic_sugar/">&laquo; lispy语法糖</a>
+        
+        
+        <a class="right" href="/blog/posts-output/2017-12-1-when_to_use_define_compiler_macro/">何时使用compiler macro &raquo;</a>
+        
+    </div>
+
+    
+
+
+</div>
+
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div id="sidebar">
+                <h3>Links</h3>
+                <ul id="links">
+                    <li><a href="http://cryogenweb.org/docs/home.html">Cryogen Docs</a></li>
+                    <li><a href="http://carmenla.me/blog/archives">Carmen's Blog</a></li>
+                    
+                    <li><a href="/blog/pages-output/another-page/">Another Page</a></li>
+                    
+                </ul>
+                
+                <div id="recent">
+                    <h3>Recent Posts</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-php_has_a_pipe/">Php Has a Pipe</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-lispy_syntactic_sugar/">lispy语法糖</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-2-topologic_sorting/">拓扑排序</a></li>
+                        
+                    </ul>
+                </div>
+                
+                
+                <div id="tags">
+                    <h3>Tags</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/tags-output/language/">language</a></li>
+                        
+                        <li><a href="/blog/tags-output/algorithm/">algorithm</a></li>
+                        
+                        <li><a href="/blog/tags-output/lisp/">lisp</a></li>
+                        
+                        <li><a href="/blog/tags-output/architecture/">architecture</a></li>
+                        
+                        <li><a href="/blog/tags-output/translate/">translate</a></li>
+                        
+                        <li><a href="/blog/tags-output/cryogen/">cryogen</a></li>
+                        
+                        <li><a href="/blog/tags-output/very fetch/">very fetch</a></li>
+                        
+                        <li><a href="/blog/tags-output/not fetch/">not fetch</a></li>
+                        
+                    </ul>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    <footer>Copyright &copy; 2018 佛说要有枪
+        <p style="text-align: center;">Powered by <a href="http://cryogenweb.org">Cryogen</a></p></footer>
+</div>
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+<script src="/blog/js/highlight.pack.js" type="text/javascript"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Buddha says: Let there be Guns: Php Has a Pipe</title>
+    <link rel="canonical" href="http://blogawesome.com/blog/posts-output/2017-12-5-php_has_a_pipe/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="//fonts.googleapis.com/css?family=Alegreya:400italic,700italic,400,700" rel="stylesheet"
+          type="text/css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/default.min.css">
+    <link href="/blog/css/screen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+
+<nav class="navbar navbar-default">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/blog/">Buddha says: Let there be Guns</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li ><a href="/blog/">Home</a></li>
+                <li
+                ><a href="/blog/archives/">Archives</a></li>
+                
+                <li
+                >
+                <a href="/blog/pages-output/about/">About</a>
+                </li>
+                
+                <li><a href="/blog/feed.xml">RSS</a></li>
+            </ul>
+        </div><!--/.nav-collapse -->
+    </div><!--/.container-fluid -->
+</nav>
+
+
+<div class="container">
+
+
+    <div class="row">
+        <div class="col-lg-9">
+            <div id="content">
+                
+<div id="post">
+    <div class="post-header">
+    <div id="post-meta" class="row">
+        <div class="col-lg-6">December 5, 2017</div>
+        
+    </div>
+    <h2>Php Has a Pipe</h2>
+</div>
+<div>
+    
+    <p><img src="https://github.com/wlisper/wlisper.github.io/blob/master/assets/pic/php-pipe.png?raw=true" alt=""/></p><p>PHP 是一根管子，你通常会把它的一端接到汽车的排气管，另一端插进车窗里，然后你坐进车里，开动引擎。</p><p>这是以前在网上看到的一则比喻，当时不懂其意；最近在工作中需要用到php，也踩了一些坑，才知道管子的比喻实在生动。</p><p>才开始接触php，你会发觉php的词法环境是有悖于大多数程序语言的设计的，一些你认为应该发生的，它不会让你如愿；一些你不希望发生的，它会悄悄的帮你做了。</p><p>比如下面的代码：</p><pre><code>$env  = 'linux';
+function fun1&#40;&#41; {
+    if &#40;$env == 'linux'&#41; {
+        do&#95;something&#40;&#41;;
+    }
+}</code></pre><p>你可能以为在env为linux的情况下，会做些事情。然而php并不会帮你做的，在php看来env不是一个全局变量，php有它的解决方案，你可以在函数中申明env为global的，就像下面这样：</p><pre><code>$env = 'linux';
+function fun2&#40;&#41; {
+    global $env;    //  方便吧？
+    if &#40;$env == 'linux'&#41; {
+        do&#95;something&#40;&#41;;
+    }
+}</code></pre><p>有时你不希望做的一些事，php会帮你做的。例如下面的代码:</p><pre><code>function fun3&#40;&#41; {
+
+    $env = 'windows';   // 我的系统类型
+    $allenv = array&#40;
+        'linux', 'windows', 'mac'
+    &#41;;
+    foreach &#40;$allenv as $env&#41; {
+        do&#95;system&#95;specific&#40;$env&#41;;   // 根据不同的系统，做一些特定的工作
+    }
+
+    do&#95;my&#95;system&#95;work&#40;$env&#41;;   // 开始做自己系统相关的工作。
+}</code></pre><p>你可能以为在做完各种系统相关的工作后，还可以回来做自己系统相关的工作；然而你自己的系统已经变为mac了，后面的工作就全错了。发生这个的原因是php的foreach在迭代中修改了env的值，而且是 '外层’的env, 这就好像内层产生了废气, php不帮你回收清理, 反而将这些废气排到外面, 污染了外层环境, 增加出现bug的可能</p>
+</div>
+
+<div id="post-tags">
+    <b>Tags: </b>
+    
+    <a href="/blog/tags-output/language/">language</a>
+    
+</div>
+
+
+    <div id="prev-next">
+        
+        
+        <a class="right" href="/blog/posts-output/2017-12-5-lispy_syntactic_sugar/">lispy语法糖 &raquo;</a>
+        
+    </div>
+
+    
+
+
+</div>
+
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div id="sidebar">
+                <h3>Links</h3>
+                <ul id="links">
+                    <li><a href="http://cryogenweb.org/docs/home.html">Cryogen Docs</a></li>
+                    <li><a href="http://carmenla.me/blog/archives">Carmen's Blog</a></li>
+                    
+                    <li><a href="/blog/pages-output/another-page/">Another Page</a></li>
+                    
+                </ul>
+                
+                <div id="recent">
+                    <h3>Recent Posts</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-php_has_a_pipe/">Php Has a Pipe</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-lispy_syntactic_sugar/">lispy语法糖</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-2-topologic_sorting/">拓扑排序</a></li>
+                        
+                    </ul>
+                </div>
+                
+                
+                <div id="tags">
+                    <h3>Tags</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/tags-output/language/">language</a></li>
+                        
+                        <li><a href="/blog/tags-output/algorithm/">algorithm</a></li>
+                        
+                        <li><a href="/blog/tags-output/lisp/">lisp</a></li>
+                        
+                        <li><a href="/blog/tags-output/architecture/">architecture</a></li>
+                        
+                        <li><a href="/blog/tags-output/translate/">translate</a></li>
+                        
+                        <li><a href="/blog/tags-output/cryogen/">cryogen</a></li>
+                        
+                        <li><a href="/blog/tags-output/very fetch/">very fetch</a></li>
+                        
+                        <li><a href="/blog/tags-output/not fetch/">not fetch</a></li>
+                        
+                    </ul>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    <footer>Copyright &copy; 2018 佛说要有枪
+        <p style="text-align: center;">Powered by <a href="http://cryogenweb.org">Cryogen</a></p></footer>
+</div>
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+<script src="/blog/js/highlight.pack.js" type="text/javascript"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+</body>
+</html>

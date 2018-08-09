@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Buddha says: Let there be Guns: 新手引导：利用AWS伸缩到千万级用户</title>
+    <link rel="canonical" href="http://blogawesome.com/blog/posts-output/2017-11-29-guide_to_scaling_11m_users_on_amazon/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="//fonts.googleapis.com/css?family=Alegreya:400italic,700italic,400,700" rel="stylesheet"
+          type="text/css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/default.min.css">
+    <link href="/blog/css/screen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+
+<nav class="navbar navbar-default">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/blog/">Buddha says: Let there be Guns</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li ><a href="/blog/">Home</a></li>
+                <li
+                ><a href="/blog/archives/">Archives</a></li>
+                
+                <li
+                >
+                <a href="/blog/pages-output/about/">About</a>
+                </li>
+                
+                <li><a href="/blog/feed.xml">RSS</a></li>
+            </ul>
+        </div><!--/.nav-collapse -->
+    </div><!--/.container-fluid -->
+</nav>
+
+
+<div class="container">
+
+
+    <div class="row">
+        <div class="col-lg-9">
+            <div id="content">
+                
+<div id="post">
+    <div class="post-header">
+    <div id="post-meta" class="row">
+        <div class="col-lg-6">November 29, 2017</div>
+        
+    </div>
+    <h2>新手引导：利用AWS伸缩到千万级用户</h2>
+</div>
+<div>
+    
+    <p><div id="table-of-contents"> <h2>Table of Contents</h2> <div id="text-table-of-contents"> <ul> <li><a href="#org85a7ed2">1. 新手引导：利用AWS伸缩到千万级用户</a> <ul> <li><a href="#org62393be">1.1. 基础</a></li> <li><a href="#orgcac6e52">1.2. 单用户</a></li> <li><a href="#org6dc4f36">1.3. 垂直伸缩</a></li> <li><a href="#org2120e3c">1.4. 用户量大于10</a></li> <li><a href="#org8ec8903">1.5. 用户量大于100</a></li> <li><a href="#orgd304dc7">1.6. 用户量大于1000</a></li> <li><a href="#org015df2f">1.7. 用户量一万到十万</a></li> <li><a href="#orga52b1fe">1.8. 自动伸缩</a></li> <li><a href="#org7ba5bea">1.9. 用户量大于50万</a></li> <li><a href="#org1c92550">1.10. 自动化</a></li> <li><a href="#org544f2c1">1.11. 解耦架构</a></li> <li><a href="#org0a31f1d">1.12. 不要重复发明轮子</a></li> <li><a href="#org727f571">1.13. 用户量大于一百万</a></li> <li><a href="#orgcf3fe1a">1.14. 用户量大于一千万</a></li> <li><a href="#org4af6b98">1.15. 用户量大于1000万</a></li> <li><a href="#org49c6bf3">1.16. 总结</a></li> </ul> </li> </ul> </div> </div></p><p><a id="org85a7ed2"></a></p><h1 id="新手引导：利用aws伸缩到千万级用户">新手引导：利用AWS伸缩到千万级用户</h1><p>本文翻译自：<a href='http://highscalability.com/blog/2016/1/11/a-beginners-guide-to-scaling-to-11-million-users-on-amazons.html'>HighScalability</a>。</p><p>如何将系统从单用户伸缩到千万级的用户量？Joel Williams,亚马逊的Web服务方案架构师，就此话题做了一个不错的演讲:<a href='https://www.youtube.com/watch?v=vg5onp8TU6Q&list=PLhr1KZpdzukdRxs_pGJm-qSy5LayL6W_Y'>AWS re:Invent 2015 Scaling Up to Your First 10 Million Users</a>。</p><p>如果你是高级AWS用户，这份演讲可能对你没什么用处。但对于新手来说，这却是一个很好的起点。</p><p>这份演讲出自亚马逊，所以演讲中亚马逊的服务是解决所有问题的核心。</p><p>下面是一些有趣的总结：</p><ul><li>从SQL开始，只有在必要时才迁移到NOSQL。</li><li>将系统中的模块分离，使它们可以独立的伸缩并实现差错隔离。</li><li>将精力投入到你的核心商业业务，不要重新发明轮子。</li><li>伸缩性和冗余性不是两个分离的概念，你通常能够同时实现二者。</li></ul><p><a id="org62393be"></a></p><h2 id="基础">基础</h2><ol><li>AWS在全球有12个区。    </li></ol><pre><code>&#40;1&#41; 一个区是一个具体的物理位置，其中包含了多个可用域&#40;AZ, Available Zone&#41;。
+
+&#40;2&#41; 一个可用域通常由一个数据中心或者多个数据中心组成。
+
+&#40;3&#41; 各个可用域之间相互独立，具有独立的电力和网络。
+
+&#40;4&#41; 可用域之间用低延迟网络连接，在地理位置上相距5至15英里。由于网络延迟极低，在应用程序看来，所有的可用域就像是一个整体。
+
+&#40;5&#41; 每个区至少有两个可用域。</code></pre><ol><li>AWS在全球有53个边缘区(Edge Location)    </li></ol><pre><code>&#40;1&#41; 边缘区用于CloudFront,CDN,Route53和Amazon DNS服务
+
+&#40;2&#41; 边缘区使用户可以低延迟的访问数据,无论在什么地理位置.</code></pre><ol><li>构建块    </li></ol><pre><code>&#40;1&#41; AWS提供了众多的构建块服务，这些服务使用可用域作为支撑，具备高可用和容错性。
+
+&#40;2&#41; 你可以付费使用这些服务构建应用，而不是自己构建这些高可用的服务。
+
+&#40;3&#41; 可用域包含的服务有：CloudFront, Route53, S3, DynamoDb, Elastic Load Balancing, EFS, lambda, SQS, SNS, SES, SWF。
+
+&#40;4&#41; 使用单一的可用域也可以构建出高可用的应用程序架构。</code></pre><p><a id="orgcac6e52"></a></p><h2 id="单用户">单用户</h2><p>此种情形下，你是唯一的用户，你需要一个可以运行的网站。</p><p>你的架构可能是这样的：</p><ol><li>应用运行在单一的服务器中。</li><li>单一服务器运行整个程序栈：网络层，数据库，管理层..</li><li>使用Amazon Route 53做DNS。</li><li>为应用绑定一个<a href='http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html'>Elastic IP</a>。</li><li>应用在一段时间可以工作地很好。</li></ol><p><a id="org6dc4f36"></a></p><h2 id="垂直伸缩">垂直伸缩</h2><ol><li>你需要一个性能更好的主机。最简单的方案是选择<a href='http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/c4-instances.html'>c4.8xlarge</a> 或者<a href='https://aws.amazon.com/ec2/instance-types/'>om3.2xlarge</a>。</li><li>垂直伸缩的问题在于：没有差错转移，没有冗余。如果应用出现一个问题，整个服务可能不可用。</li></ol><p><a id="org2120e3c"></a></p><h2 id="用户量大于10">用户量大于10</h2><ol><li>单服务器模式切换到多服务器模式。    </li></ol><pre><code>&#40;1&#41; 一个主机用于web层。
+
+&#40;2&#41; 一个主机用于数据库，或者运行任意多个数据库，这些数据库都由你管理。
+
+&#40;3&#41; 将web主机与数据库主机分离开来可以让它们独立的伸缩。</code></pre><ol><li>除了运行自己的数据库，你也可以使用数据库服务。    </li></ol><pre><code>&#40;1&#41; 你是数据库管理员吗？你想要自己关心数据备份，高可用，打包，操作系统等问题吗？
+
+&#40;2&#41; 使用数据库服务的优势在于：你可以一键点击就生成分布在多个可用域的数据服务，而且是高可用，高可靠的。</code></pre><ol><li>AWS提供了多种数据库服务：    </li></ol><pre><code>&#40;1&#41; Amazon RDS关系数据库服务。
+
+&#40;2&#41; Amazon DynamoDB Nosql数据库服务。
+
+&#40;3&#41; Amazon Redshift 千兆兆级别数据仓库服务。</code></pre><ol><li>Amazon Aurora    </li></ol><pre><code>&#40;1&#41; 自动伸缩到64tb。不用再关心数据的存储。
+
+&#40;2&#41; 有多达15个读集。
+
+&#40;3&#41; 数据增量备份。
+
+&#40;4&#41; 跨越３个可用域的六路数据备份，这可以帮助解决数据访问失败的问题。
+
+&#40;5&#41; 兼容mysql。</code></pre><ol><li>从SQL起步，而不是NOSQL    </li></ol><pre><code>&#40;1&#41; 建议从SQL开始构建数据存储
+
+&#40;2&#41; SQL技术比较成熟
+
+&#40;3&#41; SQL有大量的现存代码，社区，支持组，书籍，以及工具。
+
+&#40;4&#41; SQL足以满足你前1000万用户的需求。
+
+&#40;5&#41; SQL清楚的数据模式便于构建可伸缩的数据服务。</code></pre><ol><li>什么时候可以从NOSQL起步?    </li></ol><pre><code>&#40;1&#41; 你首年即需存储５TB以上的数据或者你的应用有极大的数据紧密性任务。
+
+&#40;2&#41; 你的应用有极低延迟的需求。
+
+&#40;3&#41; 你真的需要高吞吐量。你需要优化读写的性能。
+
+&#40;4&#41; 你的应用中没有关系型数据。</code></pre><p><a id="org8ec8903"></a></p><h2 id="用户量大于100">用户量大于100</h2><ol><li>使用单独的主机，用于网络层。</li><li>将数据存储到Amazon RDS，由它管理一切。</li></ol><p><a id="orgd304dc7"></a></p><h2 id="用户量大于1000">用户量大于1000</h2><ol><li>在另一个可用域中开启另一个网络层实例，这样可以提高服务可用性，同时，由于可用域之间网络延迟极低，两个网络层实例就好像一个实例一样。</li><li>在另一个可用域中开启一个从数据库，在主数据库故障时，应用程序会自动地向从数据库发送请求。</li><li>在配置中加入弹性负载均衡(Elastic Load Balancer, ELB), 用于在你的两个网络实例之间进行负载均衡。    </li></ol><pre><code>&#40;1&#41; ELB是高可用可管理的负载均衡器。在所有的可用域中均可使用，他是你应用程序的唯一DNS端口。
+
+&#40;2&#41; ELB具有健康检测功能，这可以保证请求不会流入故障的主机。
+
+&#40;3&#41; ELB帮助你进行架构伸缩，让你无需操心太多。</code></pre><p><a id="org015df2f"></a></p><h2 id="用户量一万到十万">用户量一万到十万</h2><ol><li>水平伸缩，在ELB之后可以有1000或更多个网络实例。</li><li>添加更多的只读数据集。</li><li>考虑到网络层的性能，将网络层的一些流量分离到其他模块，将静态内容移动到Amazon S3和Amazon CloudFront。CloudFront将你的数据存储到边缘区(Edge Location)。</li><li>Amazon S3是一个对象存储。</li><li>Amazon CloudFront是应用的缓存。</li><li>你也可以将回话状态存储到ElasticCache或者DynamoDB，从而减轻网络层的负载。</li><li>将数据库的数据缓存到ElastiCache。</li></ol><p><a id="orga52b1fe"></a></p><h2 id="自动伸缩">自动伸缩</h2><ol><li>如果你提供足够的资源，能够满足应用高峰时的流量需求，在闲时，你却在浪费资源。</li><li>你可以定义最大和最小资源池。</li><li>CloudWatch是一个嵌入到所有应用的管理服务，提供伸缩性管理。</li></ol><p><a id="org7ba5bea"></a></p><h2 id="用户量大于50万">用户量大于50万</h2><ol><li>前一节中, 自动伸缩组加入到网络层配置中。自动伸缩组包括两个可用域，可以伸缩到３个或者更多可用域。</li><li>在每个可用域中有3个网络实例，其实可以增加到数千个实例。你可以配置最少需要10个实例，最多伸缩到1000个实例。</li><li>ElastiCache用于缓存热数据，减轻数据库负载。</li><li>DynamoDB用于管理会话数据。</li><li>为应用增加监控，度量，日志功能。</li><li>了解用户的体验，是否延迟过高或者遇到什么错误。</li><li>通过配置尽量利用系统性能，自动伸缩是很好的解决方案。</li></ol><p><a id="org1c92550"></a></p><h2 id="自动化">自动化</h2><ol><li>架构更加复杂，它能伸缩到1000个实例，具有只读数据集，可以水平伸缩。现在我们需要一些自动化管理工具来管理所有的实例。</li><li>AWS Elastic Beanstalk，自动管理你的应用设施。</li></ol><p><a id="org544f2c1"></a></p><h2 id="解耦架构">解耦架构</h2><ol><li>使用SOA/microservices。将应用组件分离出来，独立成为单独的服务，就好像你分离网络层和数据库一样。</li><li>每个服务都可以独立的伸缩，这带给你更多的灵活性和高可用性。</li><li>SOA是架构的核心组件。</li><li>低耦合使你更加灵活：    </li></ol><pre><code>&#40;1&#41; 各组件独立伸缩，差错隔离。
+
+&#40;2&#41; 如果一个工作节点故障，只需启动一个新的节点，这提高了错误处理能力。
+
+&#40;3&#41; 将各个服务设计到独立的黑盒中。
+
+&#40;4&#41; 在服务内部提供伸缩性和冗余性。</code></pre><p><a id="org0a31f1d"></a></p><h2 id="不要重复发明轮子">不要重复发明轮子</h2><ol><li>关注你的业务逻辑。</li><li>Amazon提供了很多高容错的服务。</li><li>SQS：队列服务。</li><li>AWS Lambda: 让你无需配置和管理服务器。</li></ol><p><a id="org727f571"></a></p><h2 id="用户量大于一百万">用户量大于一百万</h2><ol><li>用户量达到一百万需要前面提到的所有服务：    </li></ol><pre><code>&#40;1&#41; 多个可用域
+
+&#40;2&#41; Elastic Load Balanceing&#40;ELB&#41;。
+
+&#40;3&#41; Service Oriented Architecture。
+
+&#40;4&#41; 添加缓存。
+
+&#40;5&#41; 将状态从网络层移除。</code></pre><ol><li>使用Amazon SES发送邮件。</li><li>使用CloudWatch进行监控。</li></ol><p><a id="orgcf3fe1a"></a></p><h2 id="用户量大于一千万">用户量大于一千万</h2><ol><li>随着用户量增大，数据层成了问题所在。写数据库负载过高，成为瓶颈。</li><li>如何解决？    </li></ol><pre><code>&#40;1&#41; 联合
+
+&#40;2&#41; 分片
+
+&#40;3&#41; 将部分功能转移到Nosql</code></pre><ol><li>联合，基于功能将数据分配到多个数据库。    </li></ol><pre><code>&#40;1&#41; 例如：论坛数据库，用户数据库，产品数据库等等。
+
+&#40;2&#41; 各个数据库可以独立伸缩。
+
+&#40;3&#41; 缺点：不能跨数据库查询，这引出了下一种策略：分片。</code></pre><ol><li>分片：将一个数据集切分到多个主机。    </li></ol><pre><code>&#40;1&#41; 应用层变复杂，可扩展性没有限制。
+
+&#40;2&#41; 比如：将1/3的用户存入shard1，1/3存入shard2，剩下的存入shard3。</code></pre><ol><li>将部分功能转移到NoSql</li></ol><p><a id="org4af6b98"></a></p><h2 id="用户量大于1000万">用户量大于1000万</h2><ol><li>伸缩性是一个迭代的过程，随着用户量的增多，你总是可以找到更多的解决方案。</li><li>调优应用程序。</li><li>更多的SOA。</li><li>由多个可用域升级到多个可用区。</li><li>开始构建定制的解决方案，专用于解决你遇到的特定问题。</li><li>深入分析整个应用栈。</li></ol><p><a id="org49c6bf3"></a></p><h2 id="总结">总结</h2><ol><li>使用多可用域提高可用性。</li><li>使用自动伸缩服务。</li><li>在应用的各级构建冗余，可伸缩性和冗余性可以同时实现。</li><li>有关系性数据库开始构建应用。</li><li>缓存数据。</li><li>使用自动化管理工具。</li><li>保证有较好的测量，监控，日志工具。</li><li>SOA。</li><li>将部分数据迁移到NoSql。</li></ol>
+</div>
+
+<div id="post-tags">
+    <b>Tags: </b>
+    
+    <a href="/blog/tags-output/architecture/">architecture</a>
+    
+    <a href="/blog/tags-output/translate/">translate</a>
+    
+</div>
+
+
+    <div id="prev-next">
+        
+        <a href="/blog/posts-output/2017-12-1-when_to_use_define_compiler_macro/">&laquo; 何时使用compiler macro</a>
+        
+        
+        <a class="right" href="/blog/posts-output/2017-11-25-twenty-bottlenecks/">性能瓶颈列表 &raquo;</a>
+        
+    </div>
+
+    
+
+
+</div>
+
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div id="sidebar">
+                <h3>Links</h3>
+                <ul id="links">
+                    <li><a href="http://cryogenweb.org/docs/home.html">Cryogen Docs</a></li>
+                    <li><a href="http://carmenla.me/blog/archives">Carmen's Blog</a></li>
+                    
+                    <li><a href="/blog/pages-output/another-page/">Another Page</a></li>
+                    
+                </ul>
+                
+                <div id="recent">
+                    <h3>Recent Posts</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-php_has_a_pipe/">Php Has a Pipe</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-lispy_syntactic_sugar/">lispy语法糖</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-2-topologic_sorting/">拓扑排序</a></li>
+                        
+                    </ul>
+                </div>
+                
+                
+                <div id="tags">
+                    <h3>Tags</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/tags-output/language/">language</a></li>
+                        
+                        <li><a href="/blog/tags-output/algorithm/">algorithm</a></li>
+                        
+                        <li><a href="/blog/tags-output/lisp/">lisp</a></li>
+                        
+                        <li><a href="/blog/tags-output/architecture/">architecture</a></li>
+                        
+                        <li><a href="/blog/tags-output/translate/">translate</a></li>
+                        
+                        <li><a href="/blog/tags-output/cryogen/">cryogen</a></li>
+                        
+                        <li><a href="/blog/tags-output/very fetch/">very fetch</a></li>
+                        
+                        <li><a href="/blog/tags-output/not fetch/">not fetch</a></li>
+                        
+                    </ul>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    <footer>Copyright &copy; 2018 佛说要有枪
+        <p style="text-align: center;">Powered by <a href="http://cryogenweb.org">Cryogen</a></p></footer>
+</div>
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+<script src="/blog/js/highlight.pack.js" type="text/javascript"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+</body>
+</html>

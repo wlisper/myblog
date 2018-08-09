@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Buddha says: Let there be Guns: 性能瓶颈列表</title>
+    <link rel="canonical" href="http://blogawesome.com/blog/posts-output/2017-11-25-twenty-bottlenecks/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="//fonts.googleapis.com/css?family=Alegreya:400italic,700italic,400,700" rel="stylesheet"
+          type="text/css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/default.min.css">
+    <link href="/blog/css/screen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+
+<nav class="navbar navbar-default">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/blog/">Buddha says: Let there be Guns</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li ><a href="/blog/">Home</a></li>
+                <li
+                ><a href="/blog/archives/">Archives</a></li>
+                
+                <li
+                >
+                <a href="/blog/pages-output/about/">About</a>
+                </li>
+                
+                <li><a href="/blog/feed.xml">RSS</a></li>
+            </ul>
+        </div><!--/.nav-collapse -->
+    </div><!--/.container-fluid -->
+</nav>
+
+
+<div class="container">
+
+
+    <div class="row">
+        <div class="col-lg-9">
+            <div id="content">
+                
+<div id="post">
+    <div class="post-header">
+    <div id="post-meta" class="row">
+        <div class="col-lg-6">November 25, 2017</div>
+        
+    </div>
+    <h2>性能瓶颈列表</h2>
+</div>
+<div>
+    
+    <p>该文翻译自<a href='http://highscalability.com'>HighScalability</a>。</p><p>在Zen And The Art of Scaling - A Koan And Epigram Approach一书中，Russell Sullian 提出了一个有趣的猜想：只有20种典型的性能瓶颈。这听起来颇具疑点， 就好像只有20种基本的故事情节这种说法一样。这种观点也许是对的，这完全取决于你如何划分事物。现实中，性能瓶颈总是以各种方式出现，给我们带来极大困扰。</p><p>一天Aurelien Broszniowski给我发了一封邮件，里面是他认为的性能瓶颈的列表。我们把这份列表也寄给了Russell，他回寄给我们一份他所整理的性能瓶颈列表。下面是我们整理的最终列表。</p><p>Russell非常珍视这份列表，他说他希望能在更年轻的时候就拥有这份列表。其实随着你经验的增加，你会处理更多不同类型的项目，从中学到更多的经验，并将它们添加到这份列表中。当你在列表 中增加自己的经验总结时，你正在品味多年来所累积的经验，而不是仅仅记得性能瓶颈带给你的那些沮丧。</p><ol><li>数据库    </li></ol><pre><code>&#40;1&#41; 工作空间超出了可用内存。
+
+&#40;2&#41; Long &amp; Short running queries
+
+&#40;3&#41; 写冲突
+
+&#40;4&#41; Large joins taking up memory</code></pre><ol><li>虚拟存储    </li></ol><pre><code>&#40;1&#41; Sharing a HDD, disk seek death
+
+&#40;2&#41; 基于云的网络IO不稳定</code></pre><ol><li>编程    </li></ol><pre><code>&#40;1&#41; 多线程：死锁，不如事件轻量，难以调试，非线性扩展..
+
+&#40;2&#41; 事件驱动编程：复杂的回调，在函数调用中难以存储状态..
+
+&#40;3&#41; 没有性能检测，没有执行流程追踪，没有日志..
+
+&#40;4&#41; 非模块化，难以伸缩。SPOF&#40;single point of failure&#41;，一个失败导致整个系统不可用。非水平性伸缩。
+
+&#40;5&#41; 状态化的应用
+
+&#40;6&#41; 糟糕的设计：随着用户的增多，应用不能运行，需要重新设计并编写。
+
+&#40;7&#41; 算法复杂
+
+&#40;8&#41; 服务依赖: 依赖于其他会使程序阻塞的服务，比如DNS查询。</code></pre><ol><li>磁盘    </li></ol><pre><code>&#40;1&#41; 本地磁盘访问
+
+&#40;2&#41; 随机磁盘访问，磁盘寻址
+
+&#40;3&#41; 磁盘碎片化
+
+&#40;4&#41; 当数据量超过了SSD容量，性能下降</code></pre><ol><li>系统    </li></ol><pre><code>&#40;1&#41; fsync冲刷, linux文件缓存已满
+
+&#40;2&#41; TCP缓冲区太小
+
+&#40;3&#41; 文件描述符限制
+
+&#40;4&#41; 功率分配</code></pre><ol><li>缓存    </li></ol><pre><code>&#40;1&#41; 缺乏缓存，频繁访问数据库
+
+&#40;2&#41; HTTP: 没有压缩数据
+
+&#40;3&#41; 没有充分利用浏览器的缓存
+
+&#40;4&#41; 利用字节码缓存
+
+&#40;5&#41; 将总要的热数据保存在L1/L2缓存中</code></pre><ol><li>处理器    </li></ol><pre><code>&#40;1&#41; CPU过载
+
+&#40;2&#41; 过多的上下文切换：单核上线程太多，太多的系统调用
+
+&#40;3&#41; 过多的IO等待，所有的cpu以相同的速率等待IO
+
+&#40;4&#41; CPU高速缓存，在充分利用缓存和保持数据一致之间找到平衡点</code></pre><ol><li>网络    </li></ol><pre><code>&#40;1&#41; 网卡过载，快速中断饱和，软中断占用大量CPU时间
+
+&#40;2&#41; DNS查询
+
+&#40;3&#41; 网络包丢失
+
+&#40;4&#41; 路由失败
+
+&#40;5&#41; 网络磁盘访问
+
+&#40;6&#41; 共享存储区域网络
+
+&#40;7&#41; 服务器没有响应</code></pre><ol><li>开发过程    </li></ol><pre><code>&#40;1&#41; 测试时间
+
+&#40;2&#41; 开发时间
+
+&#40;3&#41; 团队大小
+
+&#40;4&#41; 预算</code></pre><ol><li>内存    </li></ol><pre><code>&#40;1&#41; 内存耗尽, 导致进程换入SWAP区或被停止
+
+&#40;2&#41; 内存耗尽，导致磁盘颠簸
+
+&#40;3&#41; 内存库负载过大
+
+&#40;4&#41; 内存碎片过多</code></pre>
+</div>
+
+<div id="post-tags">
+    <b>Tags: </b>
+    
+    <a href="/blog/tags-output/architecture/">architecture</a>
+    
+    <a href="/blog/tags-output/translate/">translate</a>
+    
+</div>
+
+
+    <div id="prev-next">
+        
+        <a href="/blog/posts-output/2017-11-29-guide_to_scaling_11m_users_on_amazon/">&laquo; 新手引导：利用AWS伸缩到千万级用户</a>
+        
+        
+        <a class="right" href="/blog/posts-output/2016-01-07-docs/">Quick Start Guide &raquo;</a>
+        
+    </div>
+
+    
+
+
+</div>
+
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div id="sidebar">
+                <h3>Links</h3>
+                <ul id="links">
+                    <li><a href="http://cryogenweb.org/docs/home.html">Cryogen Docs</a></li>
+                    <li><a href="http://carmenla.me/blog/archives">Carmen's Blog</a></li>
+                    
+                    <li><a href="/blog/pages-output/another-page/">Another Page</a></li>
+                    
+                </ul>
+                
+                <div id="recent">
+                    <h3>Recent Posts</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-php_has_a_pipe/">Php Has a Pipe</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-5-lispy_syntactic_sugar/">lispy语法糖</a></li>
+                        
+                        <li><a href="/blog/posts-output/2017-12-2-topologic_sorting/">拓扑排序</a></li>
+                        
+                    </ul>
+                </div>
+                
+                
+                <div id="tags">
+                    <h3>Tags</h3>
+                    <ul>
+                        
+                        <li><a href="/blog/tags-output/language/">language</a></li>
+                        
+                        <li><a href="/blog/tags-output/algorithm/">algorithm</a></li>
+                        
+                        <li><a href="/blog/tags-output/lisp/">lisp</a></li>
+                        
+                        <li><a href="/blog/tags-output/architecture/">architecture</a></li>
+                        
+                        <li><a href="/blog/tags-output/translate/">translate</a></li>
+                        
+                        <li><a href="/blog/tags-output/cryogen/">cryogen</a></li>
+                        
+                        <li><a href="/blog/tags-output/very fetch/">very fetch</a></li>
+                        
+                        <li><a href="/blog/tags-output/not fetch/">not fetch</a></li>
+                        
+                    </ul>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    <footer>Copyright &copy; 2018 佛说要有枪
+        <p style="text-align: center;">Powered by <a href="http://cryogenweb.org">Cryogen</a></p></footer>
+</div>
+<script src="//code.jquery.com/jquery-1.11.0.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+<script src="/blog/js/highlight.pack.js" type="text/javascript"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+
+</body>
+</html>
