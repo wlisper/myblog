@@ -1,0 +1,26 @@
+* @JsonRootName
+@JsonRootName用于控制类被序列化为json时的根元素的键。
+
+比如类声明如下：
+#+BEGIN_SRC java
+  @JsonRootName("myPojo")
+  public class TestPojo {
+    private String name;
+    public String getName() {
+      return name;
+    }
+
+    public void setName(String name) {
+      this.name = name;
+    }
+  }
+#+END_SRC
+
+对该类的实例进行json编码后，格式是下面这样：
+#+BEGIN_SRC js
+  {
+      "myPojo" : {
+          "name" : "testName"
+      }
+  }
+#+END_SRC
