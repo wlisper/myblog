@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>性能瓶颈列表</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="keywords" content="">
+    <meta name="generator" content="JBake">
+
+    <!-- Le styles -->
+    <link href="../../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../../css/asciidoctor.css" rel="stylesheet">
+    <link href="../../css/base.css" rel="stylesheet">
+    <link href="../../css/prettify.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <!--<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="../assets/ico/apple-touch-icon-57-precomposed.png">-->
+    <link rel="shortcut icon" href="../../favicon.ico">
+  </head>
+  <body onload="prettyPrint()">
+    <div id="wrap">
+	
+	<!-- Fixed navbar -->
+    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../../">JBake</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="../../index.html">Home</a></li>
+            <li><a href="../../about.html">About</a></li>
+            <li><a href="../../feed.xml">Subscribe</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Action</a></li>
+                <li><a href="#">Another action</a></li>
+                <li><a href="#">Something else here</a></li>
+                <li class="divider"></li>
+                <li class="dropdown-header">Nav header</li>
+                <li><a href="#">Separated link</a></li>
+                <li><a href="#">One more separated link</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+    <div class="container">
+	<div class="page-header">
+		<h1>性能瓶颈列表</h1>
+	</div>
+
+	<p><em>25 April 2017</em></p>
+
+	<p><p>该文翻译自<a href="http://highscalability.com">HighScalability</a>。</p>
+<p>在Zen And The Art of Scaling - A Koan And Epigram Approach一书中，Russell Sullian 提出了一个有趣的猜想：只有20种典型的性能瓶颈。这听起来颇具疑点，<br />
+就好像只有20种基本的故事情节这种说法一样。这种观点也许是对的，这完全取决于你如何划分事物。现实中，性能瓶颈总是以各种方式出现，给我们带来极大困扰。</p>
+<p>一天Aurelien Broszniowski给我发了一封邮件，里面是他认为的性能瓶颈的列表。我们把这份列表也寄给了Russell，他回寄给我们一份他所整理的性能瓶颈列表。下面是我们整理的最终列表。</p>
+<p>Russell非常珍视这份列表，他说他希望能在更年轻的时候就拥有这份列表。其实随着你经验的增加，你会处理更多不同类型的项目，从中学到更多的经验，并将它们添加到这份列表中。当你在列表<br />
+中增加自己的经验总结时，你正在品味多年来所累积的经验，而不是仅仅记得性能瓶颈带给你的那些沮丧。</p>
+<ol>
+<li>
+<p>数据库</p>
+<p>(1) 工作空间超出了可用内存。</p>
+<p>(2) Long &amp; Short running queries</p>
+<p>(3) 写冲突</p>
+<p>(4) Large joins taking up memory</p>
+</li>
+<li>
+<p>虚拟存储</p>
+<p>(1) Sharing a HDD, disk seek death</p>
+<p>(2) 基于云的网络IO不稳定</p>
+</li>
+<li>
+<p>编程</p>
+<p>(1) 多线程：死锁，不如事件轻量，难以调试，非线性扩展..</p>
+<p>(2) 事件驱动编程：复杂的回调，在函数调用中难以存储状态..</p>
+<p>(3) 没有性能检测，没有执行流程追踪，没有日志..</p>
+<p>(4) 非模块化，难以伸缩。SPOF(single point of failure)，一个失败导致整个系统不可用。非水平性伸缩。</p>
+<p>(5) 状态化的应用</p>
+<p>(6) 糟糕的设计：随着用户的增多，应用不能运行，需要重新设计并编写。</p>
+<p>(7) 算法复杂</p>
+<p>(8) 服务依赖: 依赖于其他会使程序阻塞的服务，比如DNS查询。</p>
+</li>
+<li>
+<p>磁盘</p>
+<p>(1) 本地磁盘访问</p>
+<p>(2) 随机磁盘访问，磁盘寻址</p>
+<p>(3) 磁盘碎片化</p>
+<p>(4) 当数据量超过了SSD容量，性能下降</p>
+</li>
+<li>
+<p>系统</p>
+<p>(1) fsync冲刷, linux文件缓存已满</p>
+<p>(2) TCP缓冲区太小</p>
+<p>(3) 文件描述符限制</p>
+<p>(4) 功率分配</p>
+</li>
+<li>
+<p>缓存</p>
+<p>(1) 缺乏缓存，频繁访问数据库</p>
+<p>(2) HTTP: 没有压缩数据</p>
+<p>(3) 没有充分利用浏览器的缓存</p>
+<p>(4) 利用字节码缓存</p>
+<p>(5) 将总要的热数据保存在L1/L2缓存中</p>
+</li>
+<li>
+<p>处理器</p>
+<p>(1) CPU过载</p>
+<p>(2) 过多的上下文切换：单核上线程太多，太多的系统调用</p>
+<p>(3) 过多的IO等待，所有的cpu以相同的速率等待IO</p>
+<p>(4) CPU高速缓存，在充分利用缓存和保持数据一致之间找到平衡点</p>
+</li>
+<li>
+<p>网络</p>
+<p>(1) 网卡过载，快速中断饱和，软中断占用大量CPU时间</p>
+<p>(2) DNS查询</p>
+<p>(3) 网络包丢失</p>
+<p>(4) 路由失败</p>
+<p>(5) 网络磁盘访问</p>
+<p>(6) 共享存储区域网络</p>
+<p>(7) 服务器没有响应</p>
+</li>
+<li>
+<p>开发过程</p>
+<p>(1) 测试时间</p>
+<p>(2) 开发时间</p>
+<p>(3) 团队大小</p>
+<p>(4) 预算</p>
+</li>
+<li>
+<p>内存</p>
+<p>(1) 内存耗尽, 导致进程换入SWAP区或被停止</p>
+<p>(2) 内存耗尽，导致磁盘颠簸</p>
+<p>(3) 内存库负载过大</p>
+<p>(4) 内存碎片过多</p>
+</li>
+</ol>
+</p>
+
+	<hr />
+	
+		</div>
+		<div id="push"></div>
+    </div>
+    
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit">&copy; 2014 | Mixed with <a href="http://getbootstrap.com/">Bootstrap v3.1.1</a> </a></p>
+      </div>
+    </div>
+    
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="../../js/jquery-1.11.1.min.js"></script>
+    <script src="../../js/bootstrap.min.js"></script>
+    <script src="../../js/prettify.js"></script>
+    
+  </body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <title>何时使用compiler macro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="keywords" content="">
+    <meta name="generator" content="JBake">
+
+    <!-- Le styles -->
+    <link href="../../css/bootstrap.min.css" rel="stylesheet">
+    <link href="../../css/asciidoctor.css" rel="stylesheet">
+    <link href="../../css/base.css" rel="stylesheet">
+    <link href="../../css/prettify.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <!--<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="../assets/ico/apple-touch-icon-57-precomposed.png">-->
+    <link rel="shortcut icon" href="../../favicon.ico">
+  </head>
+  <body onload="prettyPrint()">
+    <div id="wrap">
+	
+	<!-- Fixed navbar -->
+    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="../../">JBake</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="../../index.html">Home</a></li>
+            <li><a href="../../about.html">About</a></li>
+            <li><a href="../../feed.xml">Subscribe</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Action</a></li>
+                <li><a href="#">Another action</a></li>
+                <li><a href="#">Something else here</a></li>
+                <li class="divider"></li>
+                <li class="dropdown-header">Nav header</li>
+                <li><a href="#">Separated link</a></li>
+                <li><a href="#">One more separated link</a></li>
+              </ul>
+            </li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+    <div class="container">
+	<div class="page-header">
+		<h1>何时使用compiler macro</h1>
+	</div>
+
+	<p><em>27 September 2017</em></p>
+
+	<p><p>define-compiler-macro用于定义编译器宏。</p>
+<p>按照CLHS的说法：unlike an ordinary macro, a compiler macro can decline to provide an expansion merely by returning a form that is the same as the original(which can be obtaned by using &amp;whole)。</p>
+<pre><code>(defun square(x) (expt x 2))
+(define-compiler-macro square (&amp;whole form arg)
+    (if (atom arg)
+        `(expt ,arg 2)
+        (case (car arg)
+            (square (if (= (length arg) 2)
+                        `(expt ,(nth 1 arg) 4)
+                        form))
+            (expt (if (= (length arg) 3)
+                      (if (numberp (nth 2 arg))
+                          `(expt ,(nth 1 arg) ,(* 2 (nth 2 arg)))
+                          `(expt ,(nth 1 arg) (* 2 ,(nth 2 arg))))
+                      form))
+            (otherwise `(expt ,arg 2)))))
+
+(funcall (compiler-macro-function 'square) '(square x) nil) ;;  =&gt; (EXPT X 2)
+(funcall (compiler-macro-function 'square) '(square (square x)) nil) ;; =&gt; (EXPT X 4)
+(funcall (compiler-macro-function 'square) '(funcall #'square x) nil)  ;; =&gt; (EXPT X 2)
+</code></pre>
+<p>编译器宏通常用于极度优化特定的代码片段。如果一个算法在参数为常量是可以非常快，那么编译器宏在此种情形下会返回一个极快的版本；如果参数不为常量，编译器宏返回通常的算法实现。<br />
+编译器宏与普通宏的区别在于编译器宏可以遮蔽(shadow)一个同名函数，这使你可以在没有可以优化的可能时调用同名的函数实现。<br />
+通常情况下，你不需要使用编译器宏，除非你想要极度优化你的代码, 编译器宏牺牲编译时间换取更快的运行速度。</p>
+<p>例子：</p>
+<pre><code>(define-compiler-macro fib (n &amp;whole w)
+    (if (intergerp n)
+        ;; one case
+        w))
+</code></pre>
+<p>编译时，编译器无法知道(fib x) 中x的类型，因此，不会被优化；但是在(fib 10)中，编译器知道10的类型满足integerp，因此(fib 10)的值会被计算插入到原来的代码处。</p>
+</p>
+
+	<hr />
+	
+		</div>
+		<div id="push"></div>
+    </div>
+    
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit">&copy; 2014 | Mixed with <a href="http://getbootstrap.com/">Bootstrap v3.1.1</a> </a></p>
+      </div>
+    </div>
+    
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="../../js/jquery-1.11.1.min.js"></script>
+    <script src="../../js/bootstrap.min.js"></script>
+    <script src="../../js/prettify.js"></script>
+    
+  </body>
+</html>

@@ -1,0 +1,961 @@
+<?xml version="1.0"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>JBake</title>
+    <link>http://localhost:8820</link>
+    <atom:link href="http://localhost:8820/feed.xml" rel="self" type="application/rss+xml" />
+    <description>JBake Bootstrap Template</description>
+    <language>en-gb</language>
+    <pubDate>Thu, 1 Aug 2019 23:34:24 +0800</pubDate>
+    <lastBuildDate>Thu, 1 Aug 2019 23:34:24 +0800</lastBuildDate>
+
+    <item>
+      <title>拓扑排序</title>
+      <link>http://localhost:8820/blog/2017/topologic_sorting.html</link>
+      <pubDate>Wed, 25 Jul 2018 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/topologic_sorting.html</guid>
+      	<description>
+	&lt;div id=&quot;table-of-contents&quot;&gt;
+&lt;h2&gt;Table of Contents&lt;/h2&gt;
+&lt;div id=&quot;text-table-of-contents&quot;&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#org010e50b&quot;&gt;1. 拓扑排序&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#org805f137&quot;&gt;1.1. 拓扑排序算法一：&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org058f8f1&quot;&gt;1.2. 拓扑排序算法二&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;a id=&quot;org010e50b&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;拓扑排序&lt;/h1&gt;
+&lt;p&gt;有向无环图(AOV)的拓扑排序，是将图中的顶点排序成一个全序序列，使得对于图中的任意一条有向边(v, u)，满足在拓扑中v出现在u前面。&lt;/p&gt;
+&lt;p&gt;拓扑排序通常用于大工程中子工程执行顺序的确定，一个大工程通常可以拆分成多个子工程，有些子工程又必须在子工程之前执行，这是就可以使用拓扑排序，对所有子工程进行排序。&lt;/p&gt;
+&lt;p&gt;&lt;a id=&quot;org805f137&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;拓扑排序算法一：&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;选择一个入度为0的顶点并输出。&lt;/li&gt;
+&lt;li&gt;从图中删除此定点和所有出边。&lt;/li&gt;
+&lt;li&gt;重复1，2步。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;循环结束后如果输出的顶点小于图中的顶点，则说明图中有回路。&lt;/p&gt;
+&lt;p&gt;common lisp实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(defstruct vertex
+  index  ;; vertex index
+  in  ;; in edge
+  out ;; out edge
+  )
+
+(defparameter *graph* (make-array 6 :element-type &apos;vertex)) ;; vertex array
+(defun add-vertex (index in out)
+  (setf (aref *graph* index)
+        (make-vertex :index index
+                     :in in
+                     :out out)))
+
+(defun topologic-sort (&amp;amp;optional (graph *graph*))
+  (dotimes (i (length graph))
+    (if (null (aref graph i)) nil
+        (if (null (vertex-in (aref graph i)))
+            (progn (format t &amp;quot;~A~%&amp;quot; (vertex-index (aref graph i)))
+                   (dolist (j (vertex-out (aref graph i)))
+                     (setf (vertex-in (aref graph j))
+                           (delete i (vertex-in (aref graph j)))))
+                   (setf (aref graph i) nil)
+                   (topologic-sort graph))))))
+
+;; add five edges
+(add-vertex 0 &apos;() &apos;(1 2 3))
+(add-vertex 1 &apos;(0 2) &apos;())
+(add-vertex 2 &apos;(0) &apos;(1 4))
+(add-vertex 3 &apos;(0 5) &apos;(4))
+(add-vertex 4 &apos;(2 3 5) &apos;())
+(add-vertex 5 &apos;() &apos;(3 4))
+(topologic-sort)
+;; output
+;; 0
+;; 2
+;; 1
+;; 5
+;; 3
+;; 4
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a id=&quot;org058f8f1&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;拓扑排序算法二&lt;/h2&gt;
+&lt;p&gt;利用深度优先搜索的思想：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;构建一个栈。&lt;/li&gt;
+&lt;li&gt;从任意顶点v开始：&lt;/li&gt;
+&lt;li&gt;对v的所有临界顶点递归调用拓扑排序。&lt;/li&gt;
+&lt;li&gt;将v压入栈中。&lt;/li&gt;
+&lt;li&gt;还有未入栈顶点？跳到第2步。&lt;/li&gt;
+&lt;li&gt;弹出栈中所有顶点。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;common lisp实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(defstruct vertex
+  index
+  adjacent)
+
+(defparameter *graph* nil)
+(defparameter *stack* nil)
+(defparameter *visited* nil)
+
+(defun add-vertex (index adjacent)
+  (setf (aref *graph* index)
+        (make-vertex :index index
+                     :adjacent adjacent)))
+
+(defun make-graph (n)
+  (setf *graph* (make-array n :element-type &apos;vertex))
+  (setf *visited* (make-array n :initial-element nil))
+  (setf *stack* nil))
+
+(defun topologic-sort-util (n &amp;amp;optional (graph *graph*))
+  (setf (aref *visited* n) t)
+  (dolist (i (vertex-adjacent (aref graph n)))
+    (unless (aref *visited* i)
+      (topologic-sort-util i graph)))
+  (push n *stack*))
+
+(defun topologic-sort (&amp;amp;optional (graph *graph*))
+  (dotimes (i (length *visited*))
+    (unless (aref *visited* i)
+      (topologic-sort-util i graph)))
+  (dolist (e *stack*)
+    (format t &amp;quot;~A~%&amp;quot; e)))
+
+(progn (make-graph 6)
+       (add-vertex 0 &apos;(1 2 3))
+       (add-vertex 1 &apos;())
+       (add-vertex 2 &apos;(1 4))
+       (add-vertex 3 &apos;(4))
+       (add-vertex 4 &apos;())
+       (add-vertex 5 &apos;(3 4)))
+&lt;/code&gt;&lt;/pre&gt;
+
+	</description>
+    </item>
+    <item>
+      <title>@Scheduled与@EnableScheduling注释</title>
+      <link>http://localhost:8820/blog/2017/scheduled_annotation.html</link>
+      <pubDate>Wed, 25 Apr 2018 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/scheduled_annotation.html</guid>
+      	<description>
+	&lt;h1&gt;Table of Contents&lt;/h1&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&quot;#org1957251&quot;&gt;@Scheduled 注解&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orgf9297bb&quot;&gt;@EnableScheduling&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org1957251&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;@Scheduled 注解&lt;/h1&gt;
+&lt;p&gt;@Scheduled 注解用于创建spring定时任务。&lt;/p&gt;
+&lt;p&gt;创建cron风格的定时任务。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Component
+public class ScheduledTask {
+
+  @Scheduled(cron = &amp;quot;0 10 * * * *&amp;quot;)  // 没小时的整10分钟执行一次。
+  public void doWork() {
+    System.out.println(&amp;quot;do the work!!!&amp;quot;);
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;用fixedRate指定的任务会在指定时间之后再次执行，不用等待上次调用完成。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Component
+public class ScheduledTask {
+  @Scheduled(fixedRate = 1000)  // 1 秒执行一次
+  public void doJob() {
+    // ...
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;用fixedDelay指定方法执行完成后，延迟一定的时间再执行。&lt;/p&gt;
+&lt;p&gt;例如:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Component
+public class ScheduledTask {
+  @Scheduled(fixedDelay = 1000)
+  public void doWork() {
+    // 
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;用initialDelay指定首次执行延迟时间。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@Scheduled(initialDelay = 1000*10, fixedDelay=1000*2)
+public void doWork() {
+
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a id=&quot;orgf9297bb&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;@EnableScheduling&lt;/h1&gt;
+&lt;p&gt;@EnableScheduling用于告诉spring开启后台定时任务线程，通常添加在入口类上。只有开启了EnableScheduling, Scheduled注解&lt;br /&gt;
+的任务才会生效。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@SpringBootApplication
+@EnableScheduling
+public class MyApplication {
+     // 
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+	</description>
+    </item>
+    <item>
+      <title>何时使用compiler macro</title>
+      <link>http://localhost:8820/blog/2017/when_to_use_define_compiler_macro.html</link>
+      <pubDate>Wed, 27 Sep 2017 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/when_to_use_define_compiler_macro.html</guid>
+      	<description>
+	&lt;p&gt;define-compiler-macro用于定义编译器宏。&lt;/p&gt;
+&lt;p&gt;按照CLHS的说法：unlike an ordinary macro, a compiler macro can decline to provide an expansion merely by returning a form that is the same as the original(which can be obtaned by using &amp;amp;whole)。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(defun square(x) (expt x 2))
+(define-compiler-macro square (&amp;amp;whole form arg)
+    (if (atom arg)
+        `(expt ,arg 2)
+        (case (car arg)
+            (square (if (= (length arg) 2)
+                        `(expt ,(nth 1 arg) 4)
+                        form))
+            (expt (if (= (length arg) 3)
+                      (if (numberp (nth 2 arg))
+                          `(expt ,(nth 1 arg) ,(* 2 (nth 2 arg)))
+                          `(expt ,(nth 1 arg) (* 2 ,(nth 2 arg))))
+                      form))
+            (otherwise `(expt ,arg 2)))))
+
+(funcall (compiler-macro-function &apos;square) &apos;(square x) nil) ;;  =&amp;gt; (EXPT X 2)
+(funcall (compiler-macro-function &apos;square) &apos;(square (square x)) nil) ;; =&amp;gt; (EXPT X 4)
+(funcall (compiler-macro-function &apos;square) &apos;(funcall #&apos;square x) nil)  ;; =&amp;gt; (EXPT X 2)
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;编译器宏通常用于极度优化特定的代码片段。如果一个算法在参数为常量是可以非常快，那么编译器宏在此种情形下会返回一个极快的版本；如果参数不为常量，编译器宏返回通常的算法实现。&lt;br /&gt;
+编译器宏与普通宏的区别在于编译器宏可以遮蔽(shadow)一个同名函数，这使你可以在没有可以优化的可能时调用同名的函数实现。&lt;br /&gt;
+通常情况下，你不需要使用编译器宏，除非你想要极度优化你的代码, 编译器宏牺牲编译时间换取更快的运行速度。&lt;/p&gt;
+&lt;p&gt;例子：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(define-compiler-macro fib (n &amp;amp;whole w)
+    (if (intergerp n)
+        ;; one case
+        w))
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;编译时，编译器无法知道(fib x) 中x的类型，因此，不会被优化；但是在(fib 10)中，编译器知道10的类型满足integerp，因此(fib 10)的值会被计算插入到原来的代码处。&lt;/p&gt;
+
+	</description>
+    </item>
+    <item>
+      <title>Php Has a Pipe</title>
+      <link>http://localhost:8820/blog/2017/php_has_a_pipe.html</link>
+      <pubDate>Thu, 21 Sep 2017 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/php_has_a_pipe.html</guid>
+      	<description>
+	&lt;p&gt;&lt;img src=&quot;https://github.com/wlisper/myblog/blob/master/resources/templates/img/php-pipe.png?raw=true&quot; alt=&quot;&quot;/&gt;&lt;/p&gt;
+&lt;p&gt;PHP 是一根管子，你通常会把它的一端接到汽车的排气管，另一端插进车窗里，然后你坐进车里，开动引擎。&lt;/p&gt;
+&lt;p&gt;这是以前在网上看到的一则比喻，当时不懂其意；最近在工作中需要用到php，也踩了一些坑，才知道管子的比喻实在生动。&lt;/p&gt;
+&lt;p&gt;才开始接触php，你会发觉php的词法环境是有悖于大多数程序语言的设计的，一些你认为应该发生的，它不会让你如愿；一些你不希望发生的，它会悄悄的帮你做了。&lt;/p&gt;
+&lt;p&gt;比如下面的代码：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$env  = &apos;linux&apos;;
+function fun1() {
+    if ($env == &apos;linux&apos;) {
+        do_something();
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;你可能以为在env为linux的情况下，会做些事情。然而php并不会帮你做的，在php看来env不是一个全局变量，php有它的解决方案，你可以在函数中申明env为global的，就像下面这样：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;$env = &apos;linux&apos;;
+function fun2() {
+    global $env;    //  方便吧？
+    if ($env == &apos;linux&apos;) {
+        do_something();
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;有时你不希望做的一些事，php会帮你做的。例如下面的代码:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;function fun3() {
+
+    $env = &apos;windows&apos;;   // 我的系统类型
+    $allenv = array(
+        &apos;linux&apos;, &apos;windows&apos;, &apos;mac&apos;
+    );
+    foreach ($allenv as $env) {
+        do_system_specific($env);   // 根据不同的系统，做一些特定的工作
+    }
+
+    do_my_system_work($env);   // 开始做自己系统相关的工作。
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;你可能以为在做完各种系统相关的工作后，还可以回来做自己系统相关的工作；然而你自己的系统已经变为mac了，后面的工作就全错了。发生这个的原因是php的foreach在迭代中修改了env的值，而且是&lt;br /&gt;
+&apos;外层’的env, 这就好像内层产生了废气, php不帮你回收清理, 反而将这些废气排到外面, 污染了外层环境, 增加出现bug的可能&lt;/p&gt;
+
+	</description>
+    </item>
+    <item>
+      <title>jackson常用注释</title>
+      <link>http://localhost:8820/blog/2017/jackson-annotations.html</link>
+      <pubDate>Wed, 20 Sep 2017 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/jackson-annotations.html</guid>
+      	<description>
+	&lt;h1&gt;Table of Contents&lt;/h1&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;a href=&quot;#org87fc69d&quot;&gt;@JsonRootName&lt;/a&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org87fc69d&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;@JsonRootName&lt;/h1&gt;
+&lt;p&gt;@JsonRootName用于控制类被序列化为json时的根元素的键。&lt;/p&gt;
+&lt;p&gt;比如类声明如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;@JsonRootName(&amp;quot;myPojo&amp;quot;)
+public class TestPojo {
+  private String name;
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;对该类的实例进行json编码后，格式是下面这样：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;{
+    &amp;quot;myPojo&amp;quot; : {
+        &amp;quot;name&amp;quot; : &amp;quot;testName&amp;quot;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;
+
+	</description>
+    </item>
+    <item>
+      <title>lispy语法糖</title>
+      <link>http://localhost:8820/blog/2017/lispy_syntactic_sugar.html</link>
+      <pubDate>Mon, 28 Aug 2017 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/lispy_syntactic_sugar.html</guid>
+      	<description>
+	&lt;div id=&quot;table-of-contents&quot;&gt;
+&lt;h2&gt;Table of Contents&lt;/h2&gt;
+&lt;div id=&quot;text-table-of-contents&quot;&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#org258c079&quot;&gt;1. lispy语法糖&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#org747c3bc&quot;&gt;1.1. c风格for循环&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orgc6362d0&quot;&gt;1.2. c风格while循环&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org87c8956&quot;&gt;1.3. php风格foreach&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org6bb79b5&quot;&gt;1.4. php数组语法糖[]&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orgfe963ea&quot;&gt;1.5. 字面hash&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orgab2fd74&quot;&gt;1.6. @型注释&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;a id=&quot;org258c079&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;lispy语法糖&lt;/h1&gt;
+&lt;p&gt;语法糖虽甜，吃多了可会长蛀牙，里面还有很多bug哦。&lt;/p&gt;
+&lt;p&gt;&lt;a id=&quot;org747c3bc&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;c风格for循环&lt;/h2&gt;
+&lt;p&gt;lisp实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(defmacro for ((init cond step) &amp;amp;body body)
+  (rutils:with-gensyms (goto-tag exit-tag)
+    `(let* ,init
+       (tagbody
+          ,goto-tag
+           (labels ((my-continue ()
+                      ,step (go ,goto-tag))
+                    (my-break () (go ,exit-tag)))
+             (loop
+                (unless ,cond (return))
+                ,@body
+                ,step))
+          ,exit-tag))))
+
+;; test
+(for (((i 0)) (&amp;lt; i 10) (incf i))
+    (if (= i 6) (my-break))
+    (if (evenp i) (my-continue))
+    (format t &amp;quot;~A~%&amp;quot; i))
+;; output
+;1
+;3
+;5
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a id=&quot;orgc6362d0&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;c风格while循环&lt;/h2&gt;
+&lt;p&gt;lisp实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(defmacro while (test &amp;amp;body body)
+  `(for (() ,test nil)
+     ,@body))
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a id=&quot;org87c8956&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;php风格foreach&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;(defmacro foreach ((var seq) &amp;amp;body body)
+  (rutils:with-gensyms (seq-sym)
+    `(let ((,seq-sym ,seq))
+       (if (listp ,seq-sym)
+           (loop for ,var in ,seq-sym
+              do (progn ,@body))
+           (loop for ,var across ,seq-sym
+                do (progn ,@body))))))
+
+;; 作用于数组
+(foreach (var #(1 2 3 4))
+  (format t &amp;quot;~A~%&amp;quot; var))
+;; 作用于链表
+(foreach (var &apos;(1 2 3 4))
+  (format t &amp;quot;~A~%&amp;quot; var))
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a id=&quot;org6bb79b5&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;php数组语法糖[]&lt;/h2&gt;
+&lt;p&gt;php可以这样构造数组：[1, 2, 3]。&lt;/p&gt;
+&lt;p&gt;lisp实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(set-macro-character #\] (get-macro-character #\)))
+(set-macro-character #\[ (lambda (stream char)
+                           (declare (ignore char))
+                           (let* ((lst (read-delimited-list #\] stream))
+                                  (res (make-array (length lst))))
+                             (dotimes (i (length lst))
+                               (setf (aref res i) (elt lst i)))
+                             res)))
+
+;; 测试
+;  输入:[1 2 3]   返回数组：#(1 2 3) 
+;  输入:[&amp;quot;hello&amp;quot; 3 [1 2 3]]  返回嵌套数组:#(&amp;quot;hello&amp;quot; 3 #(1 2 3))。
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a id=&quot;orgfe963ea&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;字面hash&lt;/h2&gt;
+&lt;p&gt;很多语言都支持字面hash表,语法如下:&lt;br /&gt;
+{&amp;quot;key1&amp;quot; : value1, &amp;quot;key2&amp;quot; : value2};&lt;/p&gt;
+&lt;p&gt;lisp实现如下:&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(set-macro-character #\} (get-macro-character #\)))
+(set-macro-character #\{ (lambda (stream char)
+                           (declare (ignore char))
+                           (let* ((res (make-hash-table))
+                                  (lst (read-delimited-list #\} stream)))
+                             (dolist (pair lst)
+                               (setf (gethash (car pair) res)
+                                     (cdr pair)))
+                             res)))
+
+;; 测试
+; 输入{(1 . 2) (3 . 4) (5 . 6)}
+; 返回哈希表
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;a id=&quot;orgab2fd74&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;@型注释&lt;/h2&gt;
+&lt;p&gt;例如：注册一个web控制器。&lt;br /&gt;
+@controller&lt;br /&gt;
+public static void index() {&lt;br /&gt;
+//&lt;br /&gt;
+}&lt;/p&gt;
+&lt;p&gt;声明函数为内联。&lt;br /&gt;
+@inline&lt;br /&gt;
+int fact(int n);&lt;/p&gt;
+&lt;p&gt;lisp实现如下：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;(set-macro-character #\@ (lambda (stream char)
+                           (declare (ignore char))
+                           (let ((sym (read stream))
+                                 (forms (read stream)))
+                             (cond ((eq sym &apos;controller)
+                                    (progn 
+                                       (format t &amp;quot;register controller: ~A~%&amp;quot; (second forms))
+                                       ;; you can do more controller register work here
+                                        forms))
+                                   ((eq sym &apos;inline)
+                                    (progn (format t &amp;quot;declaring inline: ~A~%&amp;quot; (second forms)))
+                                    `(,(first forms) ,(second forms) ,(third forms)
+                                       (declare (inline ,(second forms)))
+                                       ,@(cdddr forms)))))))
+
+;;; test
+;; 控制器注释
+@controller
+(defun index ()
+  (format t &amp;quot;this is my home page~%&amp;quot;))
+
+;; 内联注释
+@inline
+(defun square (n)
+  (* n n))
+&lt;/code&gt;&lt;/pre&gt;
+
+	</description>
+    </item>
+    <item>
+      <title>新手引导：利用AWS伸缩到千万级用户</title>
+      <link>http://localhost:8820/blog/2017/guide_to_scaling_11m_users_on_amazon.html</link>
+      <pubDate>Fri, 25 Aug 2017 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/guide_to_scaling_11m_users_on_amazon.html</guid>
+      	<description>
+	&lt;div id=&quot;table-of-contents&quot;&gt;
+&lt;h2&gt;Table of Contents&lt;/h2&gt;
+&lt;div id=&quot;text-table-of-contents&quot;&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#org85a7ed2&quot;&gt;1. 新手引导：利用AWS伸缩到千万级用户&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&quot;#org62393be&quot;&gt;1.1. 基础&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orgcac6e52&quot;&gt;1.2. 单用户&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org6dc4f36&quot;&gt;1.3. 垂直伸缩&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org2120e3c&quot;&gt;1.4. 用户量大于10&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org8ec8903&quot;&gt;1.5. 用户量大于100&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orgd304dc7&quot;&gt;1.6. 用户量大于1000&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org015df2f&quot;&gt;1.7. 用户量一万到十万&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orga52b1fe&quot;&gt;1.8. 自动伸缩&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org7ba5bea&quot;&gt;1.9. 用户量大于50万&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org1c92550&quot;&gt;1.10. 自动化&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org544f2c1&quot;&gt;1.11. 解耦架构&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org0a31f1d&quot;&gt;1.12. 不要重复发明轮子&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org727f571&quot;&gt;1.13. 用户量大于一百万&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#orgcf3fe1a&quot;&gt;1.14. 用户量大于一千万&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org4af6b98&quot;&gt;1.15. 用户量大于1000万&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&quot;#org49c6bf3&quot;&gt;1.16. 总结&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;a id=&quot;org85a7ed2&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h1&gt;新手引导：利用AWS伸缩到千万级用户&lt;/h1&gt;
+&lt;p&gt;本文翻译自：&lt;a href=&quot;http://highscalability.com/blog/2016/1/11/a-beginners-guide-to-scaling-to-11-million-users-on-amazons.html&quot;&gt;HighScalability&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;如何将系统从单用户伸缩到千万级的用户量？Joel Williams,亚马逊的Web服务方案架构师，就此话题做了一个不错的演讲:&lt;a href=&quot;https://www.youtube.com/watch?v=vg5onp8TU6Q&amp;amp;list=PLhr1KZpdzukdRxs_pGJm-qSy5LayL6W_Y&quot;&gt;AWS re:Invent 2015 Scaling Up to Your First 10 Million Users&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;如果你是高级AWS用户，这份演讲可能对你没什么用处。但对于新手来说，这却是一个很好的起点。&lt;/p&gt;
+&lt;p&gt;这份演讲出自亚马逊，所以演讲中亚马逊的服务是解决所有问题的核心。&lt;/p&gt;
+&lt;p&gt;下面是一些有趣的总结：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;从SQL开始，只有在必要时才迁移到NOSQL。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将系统中的模块分离，使它们可以独立的伸缩并实现差错隔离。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将精力投入到你的核心商业业务，不要重新发明轮子。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;伸缩性和冗余性不是两个分离的概念，你通常能够同时实现二者。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;a id=&quot;org62393be&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;基础&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;AWS在全球有12个区。&lt;/p&gt;
+&lt;p&gt;(1) 一个区是一个具体的物理位置，其中包含了多个可用域(AZ, Available Zone)。&lt;/p&gt;
+&lt;p&gt;(2) 一个可用域通常由一个数据中心或者多个数据中心组成。&lt;/p&gt;
+&lt;p&gt;(3) 各个可用域之间相互独立，具有独立的电力和网络。&lt;/p&gt;
+&lt;p&gt;(4) 可用域之间用低延迟网络连接，在地理位置上相距5至15英里。由于网络延迟极低，在应用程序看来，所有的可用域就像是一个整体。&lt;/p&gt;
+&lt;p&gt;(5) 每个区至少有两个可用域。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;AWS在全球有53个边缘区(Edge Location)&lt;/p&gt;
+&lt;p&gt;(1) 边缘区用于CloudFront,CDN,Route53和Amazon DNS服务&lt;/p&gt;
+&lt;p&gt;(2) 边缘区使用户可以低延迟的访问数据,无论在什么地理位置.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;构建块&lt;/p&gt;
+&lt;p&gt;(1) AWS提供了众多的构建块服务，这些服务使用可用域作为支撑，具备高可用和容错性。&lt;/p&gt;
+&lt;p&gt;(2) 你可以付费使用这些服务构建应用，而不是自己构建这些高可用的服务。&lt;/p&gt;
+&lt;p&gt;(3) 可用域包含的服务有：CloudFront, Route53, S3, DynamoDb, Elastic Load Balancing, EFS, lambda, SQS, SNS, SES, SWF。&lt;/p&gt;
+&lt;p&gt;(4) 使用单一的可用域也可以构建出高可用的应用程序架构。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;orgcac6e52&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;单用户&lt;/h2&gt;
+&lt;p&gt;此种情形下，你是唯一的用户，你需要一个可以运行的网站。&lt;/p&gt;
+&lt;p&gt;你的架构可能是这样的：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;应用运行在单一的服务器中。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;单一服务器运行整个程序栈：网络层，数据库，管理层..&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用Amazon Route 53做DNS。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;为应用绑定一个&lt;a href=&quot;http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html&quot;&gt;Elastic IP&lt;/a&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;应用在一段时间可以工作地很好。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org6dc4f36&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;垂直伸缩&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;你需要一个性能更好的主机。最简单的方案是选择&lt;a href=&quot;http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/c4-instances.html&quot;&gt;c4.8xlarge&lt;/a&gt; 或者&lt;a href=&quot;https://aws.amazon.com/ec2/instance-types/&quot;&gt;om3.2xlarge&lt;/a&gt;。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;垂直伸缩的问题在于：没有差错转移，没有冗余。如果应用出现一个问题，整个服务可能不可用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org2120e3c&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量大于10&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;单服务器模式切换到多服务器模式。&lt;/p&gt;
+&lt;p&gt;(1) 一个主机用于web层。&lt;/p&gt;
+&lt;p&gt;(2) 一个主机用于数据库，或者运行任意多个数据库，这些数据库都由你管理。&lt;/p&gt;
+&lt;p&gt;(3) 将web主机与数据库主机分离开来可以让它们独立的伸缩。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;除了运行自己的数据库，你也可以使用数据库服务。&lt;/p&gt;
+&lt;p&gt;(1) 你是数据库管理员吗？你想要自己关心数据备份，高可用，打包，操作系统等问题吗？&lt;/p&gt;
+&lt;p&gt;(2) 使用数据库服务的优势在于：你可以一键点击就生成分布在多个可用域的数据服务，而且是高可用，高可靠的。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;AWS提供了多种数据库服务：&lt;/p&gt;
+&lt;p&gt;(1) Amazon RDS关系数据库服务。&lt;/p&gt;
+&lt;p&gt;(2) Amazon DynamoDB Nosql数据库服务。&lt;/p&gt;
+&lt;p&gt;(3) Amazon Redshift 千兆兆级别数据仓库服务。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Amazon Aurora&lt;/p&gt;
+&lt;p&gt;(1) 自动伸缩到64tb。不用再关心数据的存储。&lt;/p&gt;
+&lt;p&gt;(2) 有多达15个读集。&lt;/p&gt;
+&lt;p&gt;(3) 数据增量备份。&lt;/p&gt;
+&lt;p&gt;(4) 跨越３个可用域的六路数据备份，这可以帮助解决数据访问失败的问题。&lt;/p&gt;
+&lt;p&gt;(5) 兼容mysql。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;从SQL起步，而不是NOSQL&lt;/p&gt;
+&lt;p&gt;(1) 建议从SQL开始构建数据存储&lt;/p&gt;
+&lt;p&gt;(2) SQL技术比较成熟&lt;/p&gt;
+&lt;p&gt;(3) SQL有大量的现存代码，社区，支持组，书籍，以及工具。&lt;/p&gt;
+&lt;p&gt;(4) SQL足以满足你前1000万用户的需求。&lt;/p&gt;
+&lt;p&gt;(5) SQL清楚的数据模式便于构建可伸缩的数据服务。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;什么时候可以从NOSQL起步?&lt;/p&gt;
+&lt;p&gt;(1) 你首年即需存储５TB以上的数据或者你的应用有极大的数据紧密性任务。&lt;/p&gt;
+&lt;p&gt;(2) 你的应用有极低延迟的需求。&lt;/p&gt;
+&lt;p&gt;(3) 你真的需要高吞吐量。你需要优化读写的性能。&lt;/p&gt;
+&lt;p&gt;(4) 你的应用中没有关系型数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org8ec8903&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量大于100&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;使用单独的主机，用于网络层。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将数据存储到Amazon RDS，由它管理一切。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;orgd304dc7&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量大于1000&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;在另一个可用域中开启另一个网络层实例，这样可以提高服务可用性，同时，由于可用域之间网络延迟极低，两个网络层实例就好像一个实例一样。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在另一个可用域中开启一个从数据库，在主数据库故障时，应用程序会自动地向从数据库发送请求。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在配置中加入弹性负载均衡(Elastic Load Balancer, ELB), 用于在你的两个网络实例之间进行负载均衡。&lt;/p&gt;
+&lt;p&gt;(1) ELB是高可用可管理的负载均衡器。在所有的可用域中均可使用，他是你应用程序的唯一DNS端口。&lt;/p&gt;
+&lt;p&gt;(2) ELB具有健康检测功能，这可以保证请求不会流入故障的主机。&lt;/p&gt;
+&lt;p&gt;(3) ELB帮助你进行架构伸缩，让你无需操心太多。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org015df2f&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量一万到十万&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;水平伸缩，在ELB之后可以有1000或更多个网络实例。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;添加更多的只读数据集。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;考虑到网络层的性能，将网络层的一些流量分离到其他模块，将静态内容移动到Amazon S3和Amazon CloudFront。CloudFront将你的数据存储到边缘区(Edge Location)。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Amazon S3是一个对象存储。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Amazon CloudFront是应用的缓存。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;你也可以将回话状态存储到ElasticCache或者DynamoDB，从而减轻网络层的负载。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将数据库的数据缓存到ElastiCache。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;orga52b1fe&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;自动伸缩&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;如果你提供足够的资源，能够满足应用高峰时的流量需求，在闲时，你却在浪费资源。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;你可以定义最大和最小资源池。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;CloudWatch是一个嵌入到所有应用的管理服务，提供伸缩性管理。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org7ba5bea&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量大于50万&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;前一节中, 自动伸缩组加入到网络层配置中。自动伸缩组包括两个可用域，可以伸缩到３个或者更多可用域。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在每个可用域中有3个网络实例，其实可以增加到数千个实例。你可以配置最少需要10个实例，最多伸缩到1000个实例。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;ElastiCache用于缓存热数据，减轻数据库负载。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;DynamoDB用于管理会话数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;为应用增加监控，度量，日志功能。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;了解用户的体验，是否延迟过高或者遇到什么错误。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;通过配置尽量利用系统性能，自动伸缩是很好的解决方案。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org1c92550&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;自动化&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;架构更加复杂，它能伸缩到1000个实例，具有只读数据集，可以水平伸缩。现在我们需要一些自动化管理工具来管理所有的实例。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;AWS Elastic Beanstalk，自动管理你的应用设施。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org544f2c1&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;解耦架构&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;使用SOA/microservices。将应用组件分离出来，独立成为单独的服务，就好像你分离网络层和数据库一样。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;每个服务都可以独立的伸缩，这带给你更多的灵活性和高可用性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;SOA是架构的核心组件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;低耦合使你更加灵活：&lt;/p&gt;
+&lt;p&gt;(1) 各组件独立伸缩，差错隔离。&lt;/p&gt;
+&lt;p&gt;(2) 如果一个工作节点故障，只需启动一个新的节点，这提高了错误处理能力。&lt;/p&gt;
+&lt;p&gt;(3) 将各个服务设计到独立的黑盒中。&lt;/p&gt;
+&lt;p&gt;(4) 在服务内部提供伸缩性和冗余性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org0a31f1d&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;不要重复发明轮子&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;关注你的业务逻辑。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Amazon提供了很多高容错的服务。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;SQS：队列服务。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;AWS Lambda: 让你无需配置和管理服务器。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org727f571&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量大于一百万&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;用户量达到一百万需要前面提到的所有服务：&lt;/p&gt;
+&lt;p&gt;(1) 多个可用域&lt;/p&gt;
+&lt;p&gt;(2) Elastic Load Balanceing(ELB)。&lt;/p&gt;
+&lt;p&gt;(3) Service Oriented Architecture。&lt;/p&gt;
+&lt;p&gt;(4) 添加缓存。&lt;/p&gt;
+&lt;p&gt;(5) 将状态从网络层移除。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用Amazon SES发送邮件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用CloudWatch进行监控。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;orgcf3fe1a&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量大于一千万&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;随着用户量增大，数据层成了问题所在。写数据库负载过高，成为瓶颈。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;如何解决？&lt;/p&gt;
+&lt;p&gt;(1) 联合&lt;/p&gt;
+&lt;p&gt;(2) 分片&lt;/p&gt;
+&lt;p&gt;(3) 将部分功能转移到Nosql&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;联合，基于功能将数据分配到多个数据库。&lt;/p&gt;
+&lt;p&gt;(1) 例如：论坛数据库，用户数据库，产品数据库等等。&lt;/p&gt;
+&lt;p&gt;(2) 各个数据库可以独立伸缩。&lt;/p&gt;
+&lt;p&gt;(3) 缺点：不能跨数据库查询，这引出了下一种策略：分片。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;分片：将一个数据集切分到多个主机。&lt;/p&gt;
+&lt;p&gt;(1) 应用层变复杂，可扩展性没有限制。&lt;/p&gt;
+&lt;p&gt;(2) 比如：将1/3的用户存入shard1，1/3存入shard2，剩下的存入shard3。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将部分功能转移到NoSql&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org4af6b98&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;用户量大于1000万&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;伸缩性是一个迭代的过程，随着用户量的增多，你总是可以找到更多的解决方案。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;调优应用程序。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;更多的SOA。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;由多个可用域升级到多个可用区。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;开始构建定制的解决方案，专用于解决你遇到的特定问题。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;深入分析整个应用栈。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;&lt;a id=&quot;org49c6bf3&quot;&gt;&lt;/a&gt;&lt;/p&gt;
+&lt;h2&gt;总结&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;使用多可用域提高可用性。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用自动伸缩服务。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在应用的各级构建冗余，可伸缩性和冗余性可以同时实现。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;有关系性数据库开始构建应用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;缓存数据。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;使用自动化管理工具。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;保证有较好的测量，监控，日志工具。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;SOA。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;将部分数据迁移到NoSql。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+
+	</description>
+    </item>
+    <item>
+      <title>性能瓶颈列表</title>
+      <link>http://localhost:8820/blog/2017/twenty-bottlenecks.html</link>
+      <pubDate>Tue, 25 Apr 2017 00:00:00 +0800</pubDate>
+      <guid isPermaLink="false">blog/2017/twenty-bottlenecks.html</guid>
+      	<description>
+	&lt;p&gt;该文翻译自&lt;a href=&quot;http://highscalability.com&quot;&gt;HighScalability&lt;/a&gt;。&lt;/p&gt;
+&lt;p&gt;在Zen And The Art of Scaling - A Koan And Epigram Approach一书中，Russell Sullian 提出了一个有趣的猜想：只有20种典型的性能瓶颈。这听起来颇具疑点，&lt;br /&gt;
+就好像只有20种基本的故事情节这种说法一样。这种观点也许是对的，这完全取决于你如何划分事物。现实中，性能瓶颈总是以各种方式出现，给我们带来极大困扰。&lt;/p&gt;
+&lt;p&gt;一天Aurelien Broszniowski给我发了一封邮件，里面是他认为的性能瓶颈的列表。我们把这份列表也寄给了Russell，他回寄给我们一份他所整理的性能瓶颈列表。下面是我们整理的最终列表。&lt;/p&gt;
+&lt;p&gt;Russell非常珍视这份列表，他说他希望能在更年轻的时候就拥有这份列表。其实随着你经验的增加，你会处理更多不同类型的项目，从中学到更多的经验，并将它们添加到这份列表中。当你在列表&lt;br /&gt;
+中增加自己的经验总结时，你正在品味多年来所累积的经验，而不是仅仅记得性能瓶颈带给你的那些沮丧。&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;数据库&lt;/p&gt;
+&lt;p&gt;(1) 工作空间超出了可用内存。&lt;/p&gt;
+&lt;p&gt;(2) Long &amp;amp; Short running queries&lt;/p&gt;
+&lt;p&gt;(3) 写冲突&lt;/p&gt;
+&lt;p&gt;(4) Large joins taking up memory&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;虚拟存储&lt;/p&gt;
+&lt;p&gt;(1) Sharing a HDD, disk seek death&lt;/p&gt;
+&lt;p&gt;(2) 基于云的网络IO不稳定&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;编程&lt;/p&gt;
+&lt;p&gt;(1) 多线程：死锁，不如事件轻量，难以调试，非线性扩展..&lt;/p&gt;
+&lt;p&gt;(2) 事件驱动编程：复杂的回调，在函数调用中难以存储状态..&lt;/p&gt;
+&lt;p&gt;(3) 没有性能检测，没有执行流程追踪，没有日志..&lt;/p&gt;
+&lt;p&gt;(4) 非模块化，难以伸缩。SPOF(single point of failure)，一个失败导致整个系统不可用。非水平性伸缩。&lt;/p&gt;
+&lt;p&gt;(5) 状态化的应用&lt;/p&gt;
+&lt;p&gt;(6) 糟糕的设计：随着用户的增多，应用不能运行，需要重新设计并编写。&lt;/p&gt;
+&lt;p&gt;(7) 算法复杂&lt;/p&gt;
+&lt;p&gt;(8) 服务依赖: 依赖于其他会使程序阻塞的服务，比如DNS查询。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;磁盘&lt;/p&gt;
+&lt;p&gt;(1) 本地磁盘访问&lt;/p&gt;
+&lt;p&gt;(2) 随机磁盘访问，磁盘寻址&lt;/p&gt;
+&lt;p&gt;(3) 磁盘碎片化&lt;/p&gt;
+&lt;p&gt;(4) 当数据量超过了SSD容量，性能下降&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;系统&lt;/p&gt;
+&lt;p&gt;(1) fsync冲刷, linux文件缓存已满&lt;/p&gt;
+&lt;p&gt;(2) TCP缓冲区太小&lt;/p&gt;
+&lt;p&gt;(3) 文件描述符限制&lt;/p&gt;
+&lt;p&gt;(4) 功率分配&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;缓存&lt;/p&gt;
+&lt;p&gt;(1) 缺乏缓存，频繁访问数据库&lt;/p&gt;
+&lt;p&gt;(2) HTTP: 没有压缩数据&lt;/p&gt;
+&lt;p&gt;(3) 没有充分利用浏览器的缓存&lt;/p&gt;
+&lt;p&gt;(4) 利用字节码缓存&lt;/p&gt;
+&lt;p&gt;(5) 将总要的热数据保存在L1/L2缓存中&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;处理器&lt;/p&gt;
+&lt;p&gt;(1) CPU过载&lt;/p&gt;
+&lt;p&gt;(2) 过多的上下文切换：单核上线程太多，太多的系统调用&lt;/p&gt;
+&lt;p&gt;(3) 过多的IO等待，所有的cpu以相同的速率等待IO&lt;/p&gt;
+&lt;p&gt;(4) CPU高速缓存，在充分利用缓存和保持数据一致之间找到平衡点&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;网络&lt;/p&gt;
+&lt;p&gt;(1) 网卡过载，快速中断饱和，软中断占用大量CPU时间&lt;/p&gt;
+&lt;p&gt;(2) DNS查询&lt;/p&gt;
+&lt;p&gt;(3) 网络包丢失&lt;/p&gt;
+&lt;p&gt;(4) 路由失败&lt;/p&gt;
+&lt;p&gt;(5) 网络磁盘访问&lt;/p&gt;
+&lt;p&gt;(6) 共享存储区域网络&lt;/p&gt;
+&lt;p&gt;(7) 服务器没有响应&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;开发过程&lt;/p&gt;
+&lt;p&gt;(1) 测试时间&lt;/p&gt;
+&lt;p&gt;(2) 开发时间&lt;/p&gt;
+&lt;p&gt;(3) 团队大小&lt;/p&gt;
+&lt;p&gt;(4) 预算&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;内存&lt;/p&gt;
+&lt;p&gt;(1) 内存耗尽, 导致进程换入SWAP区或被停止&lt;/p&gt;
+&lt;p&gt;(2) 内存耗尽，导致磁盘颠簸&lt;/p&gt;
+&lt;p&gt;(3) 内存库负载过大&lt;/p&gt;
+&lt;p&gt;(4) 内存碎片过多&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+
+	</description>
+    </item>
+
+  </channel> 
+</rss>

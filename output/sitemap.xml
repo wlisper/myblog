@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+    <url>
+        <loc>http://localhost:8820/about.html</loc>
+        <lastmod>2013-09-24</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/topologic_sorting.html</loc>
+        <lastmod>2018-07-25</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/scheduled_annotation.html</loc>
+        <lastmod>2018-04-25</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/when_to_use_define_compiler_macro.html</loc>
+        <lastmod>2017-09-27</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/php_has_a_pipe.html</loc>
+        <lastmod>2017-09-21</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/jackson-annotations.html</loc>
+        <lastmod>2017-09-20</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/lispy_syntactic_sugar.html</loc>
+        <lastmod>2017-08-28</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/guide_to_scaling_11m_users_on_amazon.html</loc>
+        <lastmod>2017-08-25</lastmod>
+    </url>
+    <url>
+        <loc>http://localhost:8820/blog/2017/twenty-bottlenecks.html</loc>
+        <lastmod>2017-04-25</lastmod>
+    </url>
+</urlset>
